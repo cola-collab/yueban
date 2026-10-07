@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#fbf8f5">
+  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#241e24">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="月伴">
+  <meta name="description" content="安静的经期准备与护理建议">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" href="./icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="./vendor/open-props/sizes.min.css">
+  <link rel="stylesheet" href="./vendor/open-props/easings.min.css">
+  <link rel="stylesheet" href="./style.css">
+  <title>月伴 · 经期提醒与关怀</title>
+</head>
+<body>
+  <div class="shell">
+    <header class="topbar">
+      <div class="wordmark"><span class="brand-symbol" aria-hidden="true"><span></span></span><span>月伴<small>YUEBAN</small></span></div>
+      <button class="icon-button" id="settingsOpen" type="button" aria-label="打开设置"><span class="icon icon-gear" aria-hidden="true"></span></button>
+    </header>
+
+    <main id="homeView" class="view" aria-labelledby="homeTitle">
+      <div class="page-intro">
+        <div class="eyebrow"><span class="eyebrow-dot"></span><span id="phaseLabel">轻一点过日子</span></div>
+        <h1 id="homeTitle" tabindex="-1">下一次，心里有数。</h1>
+      </div>
+      <section class="cycle-card is-empty" id="cycleCard" aria-label="月伴本机估算">
+        <div class="cycle-card-top"><span><span class="icon icon-calendar" aria-hidden="true"></span> 月伴估算</span><span class="cycle-card-badge" id="estimateBadge" hidden>仅供参考</span></div>
+        <div class="cycle-card-main"><span id="daysNumber" class="days-number" hidden></span><span id="daysUnit" class="days-unit">设置一次，查看预计时间</span><button id="setupFromCard" class="card-setup-button" type="button">设置时间 <span class="icon icon-arrow-right" aria-hidden="true"></span></button></div>
+        <div class="cycle-card-bottom" id="cycleCardBottom" hidden><span id="estimateDate"></span></div>
+      </section>
+      <p class="prediction-note" id="predictionNote">月伴的日期只按本机设置估算；与 iPhone“健康”App 的预测和通知不会自动同步。</p>
+      <section class="reminder-card" aria-labelledby="homeReminderTitle">
+        <div class="section-eyebrow">最重要的事</div>
+        <h2 id="homeReminderTitle">让 iPhone 提醒你</h2>
+        <p id="reminderSummary">在“健康”App 中开启月经通知。月伴会一步步带你设置。</p>
+        <button id="reminderOpen" class="primary-button full" type="button">设置经期提醒 <span class="icon icon-arrow-right" aria-hidden="true"></span></button>
+      </section>
+      <section class="home-care" aria-labelledby="careTitle">
+        <div class="section-title-row"><h2>现在的照顾</h2></div>
+        <div class="hero-card"><div class="care-icon-wrap"><span class="icon icon-heart" aria-hidden="true"></span></div><div class="care-copy"><h3 id="careTitle">先照顾好自己</h3><p id="careSummary">需要帮助时，随时打开这里。</p></div></div>
+        <div class="main-actions"><button id="helpOpen" class="secondary-button" type="button"><span class="icon icon-first-aid" aria-hidden="true"></span> 现在不舒服</button><button id="confirmStart" class="text-button" type="button">今天开始了</button><button id="chooseStart" class="text-button" type="button">改为其他日期</button></div>
+      </section>
+      <form id="calibrateForm" class="calibrate-panel" hidden><label for="calibrateDate">实际开始日期</label><input id="calibrateDate" type="date" required><div class="inline-actions"><button type="button" id="chooseYesterday" class="outline-button">昨天</button><button type="submit" class="primary-button">保存日期</button><button type="button" id="cancelCalibrate" class="text-button">取消</button></div></form>
+      <p class="gentle-note" id="confidenceNote" hidden></p>
+      <p class="gentle-note" id="importReminder" hidden></p>
+    </main>
+
+    <main id="reminderView" class="view" aria-labelledby="reminderTitle" hidden>
+      <button class="back-button" id="reminderBack" type="button"><span class="icon icon-arrow-left" aria-hidden="true"></span> 返回首页</button>
+      <div class="eyebrow"><span class="eyebrow-dot"></span> 一次设置即可开始</div>
+      <h1 id="reminderTitle" tabindex="-1">把提醒交给 iPhone。</h1>
+      <p class="lead">月伴网页无法读取或开启“健康”App 的通知。请在自己的 iPhone 上完成下面的步骤。</p>
+      <section class="settings-section" aria-labelledby="healthTitle"><h2 id="healthTitle">首选：“健康”App 月经通知</h2>
+        <ol class="step-list"><li>打开 iPhone“健康”→“浏览”→“经期追踪”。</li><li>首次使用时按引导填写上次开始日期和一般周期。</li><li>在“选项”中开启“月经预测”和“月经通知”。</li></ol>
+        <div class="stack-actions"><button id="healthSetupConfirm" class="outline-button" type="button">我已在健康 App 开启</button><button id="healthReceivedConfirm" class="outline-button" type="button">我确实收到过系统通知</button></div>
+        <p id="healthStatus" class="status" role="status"></p>
+        <p class="subtle">下一次系统通知出现时再确认是否收到；不用为了月经提醒而开启受孕通知。“健康”App 的预测取决于其中的数据，不会与月伴自动同步。</p>
+        <p class="source-note">操作依据：<a href="https://support.apple.com/zh-cn/120356" target="_blank" rel="noopener">Apple 官方经期追踪说明</a>。具体按钮以手机实际界面为准。</p>
+      </section>
+      <section class="settings-section" aria-labelledby="calendarTitle"><h2 id="calendarTitle">备选：导入 iPhone 日历</h2>
+        <p>如果你希望另用日历提醒，可导出预计事件。不要默认同时开启两个渠道，以免重复打扰。日历文件按导入设备的当地时间显示；跨时区后请检查事件。</p>
+        <p id="calendarCoverage" class="subtle"></p>
+        <div class="stack-actions"><button id="downloadCalendar" type="button" class="outline-button">导出我的日历文件</button><button id="testCalendar" type="button" class="outline-button">生成 10 分钟后的测试日程</button><button id="shareTest" type="button" class="text-button" hidden>分享同一测试文件</button></div>
+        <p id="calendarStatus" class="status" role="status"></p>
+        <div class="stack-actions"><button id="calendarImportedConfirm" type="button" class="text-button">我已在日历看到事件</button><button id="calendarReceivedConfirm" type="button" class="text-button">我确实收到了测试通知</button></div>
+        <details><summary>下载后没看到“添加日程”</summary><p>先在“文件”App 的下载项目中找到 .ics 并打开；如果仍没有添加入口，请试用系统“分享”，或将同一个测试文件发到自己的邮箱，从“邮件”附件打开。不同 iPhone 可能进入不同预览界面，月伴无法强制唤起日历。请不要反复输入真实经期信息测试。</p></details>
+        <details><summary>日历里有事件，但没收到通知</summary><p>打开一条事件，确认它有提醒且时间正确；再检查“设置”中的日历通知权限和专注模式。测试时让手机锁屏，等到测试时刻。仍未收到时，日历渠道就不能当作已验证的提醒。</p></details>
+        <details><summary>更新日期或停用日历提醒</summary><p>网页不能删除已经导入 iPhone 的事件。若日期改变，请先在日历中删除旧的“月伴”事件或专用日历，再导入新文件；停用时也需到日历中删除。</p></details>
+      </section>
+    </main>
+
+    <main id="careView" class="view" aria-labelledby="carePageTitle" hidden>
+      <button class="back-button" id="careBack" type="button"><span class="icon icon-arrow-left" aria-hidden="true"></span> 返回首页</button>
+      <div class="eyebrow"><span class="eyebrow-dot"></span> 按眼下的问题找</div>
+      <h1 id="carePageTitle" tabindex="-1">不舒服时，先看这里。</h1>
+      <p class="lead">先看能做的几步，想知道细节再展开。新的、持续加重的疼痛或经量变化，值得向医生咨询。</p>
+      <nav class="pills" aria-label="护理主题"><button type="button" class="pill active" data-care="now">现在疼</button><button type="button" class="pill" data-care="heat">热敷</button><button type="button" class="pill" data-care="medicine">用药</button><button type="button" class="pill" data-care="food">饮食</button><button type="button" class="pill" data-care="activity">活动</button><button type="button" class="pill" data-care="flow">经量变化</button><button type="button" class="pill" data-care="doctor">何时就医</button><button type="button" class="pill" data-care="before">经前</button><button type="button" class="pill" data-care="during">经期</button><button type="button" class="pill" data-care="after">经后</button></nav>
+      <div id="careContent" class="care-content"></div>
+      <p class="source-note">资料核验：2026-10-08。内容用于日常参考，不替代个体诊断；用药以当地说明书或医嘱为准。</p>
+    </main>
+
+    <main id="settingsView" class="view" aria-labelledby="settingsTitle" hidden>
+      <button class="back-button" id="settingsBack" type="button"><span class="icon icon-arrow-left" aria-hidden="true"></span> 返回首页</button>
+      <div class="eyebrow"><span class="eyebrow-dot"></span> 月伴本机估算</div>
+      <h1 id="settingsTitle" tabindex="-1">设置你的参考日期。</h1>
+      <p class="lead">不确定的项目可以留空。月伴的日期只保存在当前浏览器；“健康”App 要单独设置。</p>
+      <form id="settingsForm" class="settings-form"><label>最近一次实际开始日期 <span>只填确认过的日期</span><input id="lastStart" type="date"></label><label>通常隔多少天来一次 <span>两次开始日期之间的天数；不知道就留空</span><input id="cycleLength" type="number" min="15" max="90" inputmode="numeric" placeholder="例如 30"></label><label>通常持续几天 <span>可选；不知道就留空</span><input id="periodLength" type="number" min="1" max="15" inputmode="numeric" placeholder="例如 5"></label><label>日历备选提醒时间 <input id="reminderTime" type="time" value="09:00"></label><fieldset class="radio-group"><legend>日历备选频率</legend><label><input type="radio" name="reminderMode" value="one" checked> 每周期只在预计来潮前提醒一次</label><label><input type="radio" name="reminderMode" value="three"> 经前、预计当天、经后关怀</label><label><input type="radio" name="reminderMode" value="off"> 不生成日历提醒</label></fieldset><button type="submit" class="primary-button full">保存设置</button></form>
+      <section class="settings-section" aria-labelledby="privacyTitle"><h2 id="privacyTitle">隐私与本机数据</h2><p>月伴没有账户，不把填写的日期上传到月伴服务器，也不接入广告或分析工具。GitHub Pages 托管方可能记录访问日志。清理浏览器数据或换手机会丢失设置；Safari 与主屏幕版本的数据是否共享取决于系统，不能保证一致。</p><button id="exportSettings" type="button" class="outline-button">导出设置备份</button><label class="import-label">导入设置备份<input id="importSettings" type="file" accept="application/json,.json"></label><button id="deleteSettings" type="button" class="danger-button">清除本机设置</button></section>
+      <section class="settings-section"><h2>放到主屏幕</h2><p>在 iPhone Safari 中打开本站，点“分享”→“添加到主屏幕”。首次联网打开后，可离线查看已缓存的护理内容。</p></section>
+    </main>
+    <p id="storageWarning" class="storage-warning" hidden>浏览器暂时无法保存本机数据；关闭页面后，设置可能丢失。</p>
+    <footer class="app-footer">月伴 <span id="appVersion"></span> · 只在需要时打开</footer>
+  </div>
+  <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+  <script type="module" src="./app.js"></script>
+</body>
+</html>

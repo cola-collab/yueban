@@ -1,0 +1,28 @@
+name: Rebuild privacy-clean Yueban history
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  rebuild:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - name: Verify and replace the public branch history
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          node --test logic.test.mjs
+          git config user.name "cola-collab"
+          git config user.email "289449651+cola-collab@users.noreply.github.com"
+          git switch --orphan clean-main
+          git restore --source="$GITHUB_SHA" --staged --worktree .
+          git commit -m "Create privacy-clean Yueban history"
+          git push --force-with-lease=refs/heads/main:$GITHUB_SHA origin HEAD:main
