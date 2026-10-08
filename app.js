@@ -3,7 +3,7 @@ import { CARE, CARE_SOURCES, TOPIC_SOURCES } from './care-data.mjs';
 import { defaultSettings, normalizeSettings, loadSettingsFrom, readLocal, writeLocal } from './state.mjs';
 
 const $ = id => document.getElementById(id);
-const APP_VERSION = '2026.10.09.3';
+const APP_VERSION = '2026.10.09.4';
 const reminderDefaults = { healthSetup: false, healthReceived: false, calendarExportFingerprint: '', calendarImportFingerprint: '', calendarTestReceived: false };
 const localStore = (() => { try { return localStorage; } catch { return null; } })();
 const loadedSettings = loadSettingsFrom(localStore);
@@ -345,8 +345,10 @@ $('reloadUpdate').addEventListener('click', () => {
   location.reload();
 });
 if ('serviceWorker' in navigator) {
-  const hadController = !!navigator.serviceWorker.controller;
+  navigator.serviceWorker.addEventListener('message', event => {
+    if (event.data?.type === 'YUEBAN_VERSION') $('updateBanner').hidden = event.data.version === APP_VERSION;
+  });
   navigator.serviceWorker.addEventListener('controllerchange', () => {
-    if (hadController) $('updateBanner').hidden = false;
+    navigator.serviceWorker.controller?.postMessage({ type: 'VERSION' });
   });
 }
