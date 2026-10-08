@@ -1,9 +1,9 @@
-import { STORAGE_KEY, REMINDER_KEY, todayLocal, addDays, validSettings, nextEstimate, currentPhase, planFingerprint, buildCalendarPackage, buildTestCalendar } from './logic.mjs';
+import { STORAGE_KEY, REMINDER_KEY, todayLocal, addDays, validSettings, nextEstimate, planFingerprint, buildCalendarPackage, buildTestCalendar } from './logic.mjs';
 import { CARE, CARE_SOURCES, TOPIC_SOURCES } from './care-data.mjs';
 import { defaultSettings, normalizeSettings, loadSettingsFrom, readLocal, writeLocal } from './state.mjs';
 
 const $ = id => document.getElementById(id);
-const APP_VERSION = '2026.10.08.1';
+const APP_VERSION = '2026.10.09.1';
 const reminderDefaults = { healthSetup: false, healthReceived: false, calendarExportFingerprint: '', calendarImportFingerprint: '', calendarTestReceived: false };
 const localStore = (() => { try { return localStorage; } catch { return null; } })();
 const loadedSettings = loadSettingsFrom(localStore);
@@ -13,6 +13,8 @@ let reminder = loadReminder();
 let previousForUndo = null;
 let undoTimer = null;
 let lastTestFile = null;
+let activeCareTopic = 'now';
+let renderedDay = todayLocal();
 
 function readStored(key) {
   const result = readLocal(localStore, key);
@@ -69,26 +71,35 @@ function showToast(message, undo = false) {
   }
   toast.hidden = false;
   clearTimeout(undoTimer);
-  undoTimer = setTimeout(() => { toast.hidden = true; previousForUndo = null; }, 7000);
+  undoTimer = setTimeout(() => { toast.hidden = true; previousForUndo = null; }, 12000);
 }
 function viewFromHash() {
   const view = location.hash.slice(1);
   return ['home', 'care', 'settings', 'reminder'].includes(view) ? view : 'home';
 }
 function showView(view, push = true) {
-  if (!$('settingsView').hidden && view !== 'settings' && planFingerprint(readForm()) !== planFingerprint(settings)) {
+  if (view === 'settings' && !$('settingsView').hidden) return;
+  if (!$('settingsView').hidden && view !== 'settings' && planFingerprint(readDateForm()) !== planFingerprint(settings)) {
     if (!window.confirm('当前修改尚未保存。离开设置后，日历仍会使用上次保存的内容。确定离开吗？')) {
       if (!push) history.pushState({ view: 'settings' }, '', '#settings');
       return;
     }
   }
+  if (!$('reminderView').hidden && view !== 'reminder' && planFingerprint(readCalendarForm()) !== planFingerprint(settings)) {
+    if (!window.confirm('日历选项尚未保存。确定离开吗？')) {
+      if (!push) history.pushState({ view: 'reminder' }, '', '#reminder');
+      return;
+    }
+  }
   for (const name of ['home', 'care', 'settings', 'reminder']) $(`${name}View`).hidden = name !== view;
-  if (view === 'settings') fillForm();
+  $('settingsOpen').hidden = view === 'settings';
+  if (view === 'settings' || view === 'reminder') fillForm();
   if (push && viewFromHash() !== view) history.pushState({ view }, '', view === 'home' ? location.pathname + location.search : `#${view}`);
   window.scrollTo(0, 0);
   $(view === 'home' ? 'homeTitle' : view === 'care' ? 'carePageTitle' : view === 'settings' ? 'settingsTitle' : 'reminderTitle').focus({ preventScroll: true });
 }
 function renderCare(topic = 'now') {
+  activeCareTopic = topic;
   const item = CARE[topic] || CARE.now;
   document.querySelectorAll('[data-care]').forEach(button => {
     const selected = button.dataset.care === topic;
@@ -127,33 +138,26 @@ function niceDate(value) {
 }
 function render() {
   const today = todayLocal();
+  renderedDay = today;
   const estimate = nextEstimate(settings, today);
-  const phase = currentPhase(settings, today);
-  const cards = {
-    before: ['提前准备一点就好', '随身用品放好，照常吃饭和休息。'],
-    during: ['按自己的节奏来', '不舒服时可以热敷、休息，或试试轻柔活动。'],
-    after: ['慢慢回到平时节奏', '如果仍明显不舒服，可以尽早求助。'],
-    general: ['先照顾好自己', '需要帮助时，随时打开这里。']
-  };
-  $('phaseLabel').textContent = { before: '可能快来了', during: '最近确认了开始日期', after: '可能刚结束', general: '轻一点过日子' }[phase];
-  $('careTitle').textContent = cards[phase][0];
-  $('careSummary').textContent = cards[phase][1];
   $('cycleCard').classList.toggle('is-empty', !estimate);
   $('cycleCard').classList.toggle('is-overdue', !!estimate?.overdue);
-  $('daysNumber').hidden = !estimate || estimate.overdue;
-  $('setupFromCard').hidden = !!estimate;
+  $('daysNumber').hidden = !estimate;
   $('cycleCardBottom').hidden = !estimate;
   $('estimateBadge').hidden = !estimate;
   if (estimate) {
-    $('homeTitle').textContent = '下一次，心里有数。';
-    $('daysNumber').textContent = estimate.daysAway;
-    $('daysUnit').textContent = estimate.overdue ? '上次预计已过，实际日期尚未确认' : estimate.daysAway === 0 ? '预计今天' : '天后可能来';
-    $('estimateDate').textContent = estimate.overdue ? `上次预计 ${niceDate(estimate.start)} · 如需要，可校准实际日期` : `预计 ${niceDate(estimate.start)}`;
-    $('confidenceNote').hidden = !estimate.overdue && estimate.cycleIndex <= 2;
+    const [, month, day] = estimate.start.split('-');
+    $('homeTitle').textContent = estimate.overdue ? '上次预计日期' : '下次预计';
+    $('daysNumber').textContent = `${Number(month)} 月 ${Number(day)} 日`;
+    $('daysUnit').textContent = estimate.overdue ? '实际日期待确认' : '预计日期，仅供参考';
+    $('estimateDate').textContent = estimate.overdue ? '预计日期已过 · 可以调整实际开始日期' : estimate.daysAway === 0 ? '预计今天' : `约 ${estimate.daysAway} 天后`;
+    $('setupFromCard').textContent = '调整参考日期';
+    $('confidenceNote').hidden = estimate.overdue || estimate.cycleIndex <= 2;
     $('confidenceNote').textContent = estimate.overdue ? '这个日期只是旧设置的推算。月伴不会把未确认的预测当作实际经期。' : '较长时间没有校准，估算可能已经偏移。';
   } else {
-    $('homeTitle').textContent = '下一次，心里有数。';
-    $('daysUnit').textContent = settings.lastStart ? '再填通常间隔，便可查看预计时间' : '设置一次，查看预计时间';
+    $('homeTitle').textContent = '下次预计';
+    $('daysUnit').textContent = settings.lastStart ? '补充通常间隔后查看预计时间' : '设置参考日期后查看预计时间';
+    $('setupFromCard').textContent = '设置参考日期';
     $('confidenceNote').hidden = true;
   }
   const fingerprint = planFingerprint(settings);
@@ -161,8 +165,9 @@ function render() {
   const stale = exported && reminder.calendarExportFingerprint !== fingerprint;
   $('importReminder').hidden = !stale;
   $('importReminder').textContent = '月伴设置已变化；若导入过旧日历，请在 iPhone 日历中删除旧事件后再导出。';
-  $('reminderSummary').textContent = reminder.healthReceived ? '你已确认收到过“健康”App 的系统通知。' : reminder.healthSetup ? '你已标记完成“健康”App 设置；实际通知还需要你确认。' : '在“健康”App 中开启月经通知。月伴会一步步带你设置。';
+  $('reminderSummary').textContent = reminder.healthReceived ? '你已确认收到过系统通知' : reminder.healthSetup ? '你已标记完成健康 App 设置' : '在“健康”App 中开启月经通知';
   $('healthStatus').textContent = reminder.healthReceived ? '你已确认收到过系统通知。月伴无法自行核验或同步“健康”App 状态。' : reminder.healthSetup ? '你已标记设置完成；待系统通知实际出现时再确认。' : '尚未标记完成。请先在自己的 iPhone 上设置。';
+  $('healthSteps').open = !reminder.healthSetup;
   $('healthSetupConfirm').textContent = reminder.healthSetup ? '撤销“已开启”标记' : '我已在健康 App 开启';
   $('healthReceivedConfirm').textContent = reminder.healthReceived ? '撤销“已收到”标记' : '我确实收到过系统通知';
   const calendar = buildCalendarPackage(settings);
@@ -177,17 +182,35 @@ function fillForm() {
   $('lastStart').value = settings.lastStart;
   $('cycleLength').value = settings.cycleLength ?? '';
   $('periodLength').value = settings.periodLength ?? '';
+  document.querySelector('.optional-field').open = settings.periodLength !== null;
   $('reminderTime').value = settings.reminderTime;
   document.querySelector(`input[name="reminderMode"][value="${settings.reminderMode}"]`).checked = true;
 }
-function readForm() {
-  return {
+function readDateForm() {
+  return { ...settings,
     lastStart: $('lastStart').value,
     cycleLength: $('cycleLength').value === '' ? null : Number($('cycleLength').value),
-    periodLength: $('periodLength').value === '' ? null : Number($('periodLength').value),
+    periodLength: $('periodLength').value === '' ? null : Number($('periodLength').value)
+  };
+}
+function readCalendarForm() {
+  return { ...settings,
     reminderTime: $('reminderTime').value,
     reminderMode: document.querySelector('input[name="reminderMode"]:checked').value
   };
+}
+function clearDateErrors() {
+  for (const id of ['lastStart', 'cycleLength', 'periodLength']) {
+    $(`${id}Error`).hidden = true;
+    $(`${id}Error`).textContent = '';
+    $(id).removeAttribute('aria-invalid');
+  }
+}
+function showDateError(id, message) {
+  $(`${id}Error`).textContent = message;
+  $(`${id}Error`).hidden = false;
+  $(id).setAttribute('aria-invalid', 'true');
+  $(id).focus();
 }
 function download(content, filename, mime) {
   const url = URL.createObjectURL(new Blob([content], { type: mime }));
@@ -204,25 +227,36 @@ function calibrate(date) {
   showToast(result.saved ? '已更新月伴估算；也请按需检查“健康”App 中的日期。' : '已暂时更新；浏览器未能保存，关闭页面后可能丢失。', true);
 }
 
-$('settingsOpen').addEventListener('click', () => showView('settings'));
+$('settingsOpen').addEventListener('click', () => { if ($('settingsView').hidden) showView('settings'); });
 $('setupFromCard').addEventListener('click', () => showView('settings'));
+$('settingsReminderOpen').addEventListener('click', () => showView('reminder'));
 $('reminderOpen').addEventListener('click', () => showView('reminder'));
-$('helpOpen').addEventListener('click', () => { renderCare('now'); showView('care'); });
+$('helpOpen').addEventListener('click', () => { renderCare(activeCareTopic); showView('care'); });
 for (const view of ['settings', 'care', 'reminder']) $(`${view}Back`).addEventListener('click', () => showView('home'));
 window.addEventListener('popstate', () => showView(viewFromHash(), false));
 document.querySelectorAll('[data-care]').forEach(button => button.addEventListener('click', () => renderCare(button.dataset.care)));
-$('confirmStart').addEventListener('click', () => calibrate(todayLocal()));
-$('chooseStart').addEventListener('click', () => { $('calibrateDate').max = todayLocal(); $('calibrateDate').value = settings.lastStart || todayLocal(); $('calibrateForm').hidden = false; $('calibrateDate').focus(); });
-$('chooseYesterday').addEventListener('click', () => { $('calibrateDate').value = addDays(todayLocal(), -1); });
+$('chooseStart').addEventListener('click', () => { $('calibrateDate').max = todayLocal(); $('calibrateDate').value = settings.lastStart || todayLocal(); $('calibrateForm').hidden = false; $('chooseToday').focus(); });
+$('chooseToday').addEventListener('click', () => calibrate(todayLocal()));
+$('chooseYesterday').addEventListener('click', () => calibrate(addDays(todayLocal(), -1)));
 $('cancelCalibrate').addEventListener('click', () => { $('calibrateForm').hidden = true; });
 $('calibrateForm').addEventListener('submit', event => { event.preventDefault(); calibrate($('calibrateDate').value); });
 $('settingsForm').addEventListener('submit', event => {
   event.preventDefault();
-  const value = readForm();
-  if (!validSettings(value) || (value.lastStart && value.lastStart > todayLocal())) { showToast('请检查日期与数字范围'); return; }
+  clearDateErrors();
+  const value = readDateForm();
+  if (value.lastStart && (value.lastStart > todayLocal() || !validSettings({ ...value, cycleLength: null, periodLength: null }))) { showDateError('lastStart', '请选择今天或之前的有效日期'); return; }
+  if (value.cycleLength !== null && (!Number.isInteger(value.cycleLength) || value.cycleLength < 15 || value.cycleLength > 90)) { showDateError('cycleLength', '请输入 15–90 之间的天数'); return; }
+  if (value.periodLength !== null && (!Number.isInteger(value.periodLength) || value.periodLength < 1 || value.periodLength > 15)) { document.querySelector('.optional-field').open = true; showDateError('periodLength', '请输入 1–15 之间的天数'); return; }
   const result = saveSettings(value);
   showView('home');
   showToast(result.saved ? result.changed ? '设置已保存；请单独检查“健康”App 的信息。' : '设置没有变化。' : '本次设置仅在当前页面有效；浏览器未能保存。');
+});
+$('calendarPreferencesForm').addEventListener('submit', event => {
+  event.preventDefault();
+  const value = readCalendarForm();
+  if (!validSettings(value)) { showToast('请检查日历提醒时间'); return; }
+  const result = saveSettings(value);
+  showToast(result.saved ? result.changed ? '日历选项已保存' : '日历选项没有变化' : '浏览器未能保存日历选项');
 });
 $('healthSetupConfirm').addEventListener('click', () => {
   reminder.healthSetup = !reminder.healthSetup;
@@ -235,6 +269,7 @@ $('healthReceivedConfirm').addEventListener('click', () => {
   persistReminder(); render();
 });
 $('downloadCalendar').addEventListener('click', () => {
+  if (planFingerprint(readCalendarForm()) !== planFingerprint(settings)) { showToast('请先保存上方日历选项'); return; }
   const packageData = buildCalendarPackage(settings);
   if (!packageData) { showToast('请先填写实际开始日期与通常周期，并开启日历备选'); return; }
   download(packageData.ics, '月伴-预计日历.ics', 'text/calendar;charset=utf-8');
@@ -295,4 +330,8 @@ $('deleteSettings').addEventListener('click', () => {
 
 renderCare(); render();
 showView(viewFromHash(), false);
+function refreshDayIfNeeded() { if (todayLocal() !== renderedDay) render(); }
+document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshDayIfNeeded(); });
+window.addEventListener('pageshow', refreshDayIfNeeded);
+setInterval(refreshDayIfNeeded, 60000);
 if ('serviceWorker' in navigator && location.protocol !== 'file:') navigator.serviceWorker.register('./sw.js').catch(() => {});

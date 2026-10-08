@@ -1,4 +1,4 @@
-const CACHE = 'yueban-v5';
+const CACHE = 'yueban-v6';
 const ASSETS = ['./', './index.html', './style.css', './app.js', './care-data.mjs', './state.mjs', './logic.mjs', './icon.svg', './manifest.webmanifest', './vendor/open-props/sizes.min.css', './vendor/open-props/easings.min.css', './vendor/phosphor/gear-six.svg', './vendor/phosphor/calendar-dots.svg', './vendor/phosphor/hand-heart.svg', './vendor/phosphor/first-aid.svg', './vendor/phosphor/arrow-right.svg', './vendor/phosphor/arrow-left.svg', './vendor/phosphor/drop.svg'];
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(ASSETS)).then(() => self.skipWaiting()));
