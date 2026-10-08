@@ -3,7 +3,7 @@ import { CARE, CARE_SOURCES, TOPIC_SOURCES } from './care-data.mjs';
 import { defaultSettings, normalizeSettings, loadSettingsFrom, readLocal, writeLocal } from './state.mjs';
 
 const $ = id => document.getElementById(id);
-const APP_VERSION = '2026.10.09.2';
+const APP_VERSION = '2026.10.09.3';
 const reminderDefaults = { healthSetup: false, healthReceived: false, calendarExportFingerprint: '', calendarImportFingerprint: '', calendarTestReceived: false };
 const localStore = (() => { try { return localStorage; } catch { return null; } })();
 const loadedSettings = loadSettingsFrom(localStore);
@@ -15,6 +15,7 @@ let undoTimer = null;
 let lastTestFile = null;
 let activeCareTopic = 'now';
 let renderedDay = todayLocal();
+let careScrollY = 0;
 
 function readStored(key) {
   const result = readLocal(localStore, key);
@@ -91,11 +92,12 @@ function showView(view, push = true) {
       return;
     }
   }
+  if (!$('careView').hidden && view !== 'care') careScrollY = window.scrollY;
   for (const name of ['home', 'care', 'settings', 'reminder']) $(`${name}View`).hidden = name !== view;
   $('settingsOpen').hidden = view === 'settings';
   if (view === 'settings' || view === 'reminder') fillForm();
   if (push && viewFromHash() !== view) history.pushState({ view }, '', view === 'home' ? location.pathname + location.search : `#${view}`);
-  window.scrollTo(0, 0);
+  window.scrollTo(0, view === 'care' ? careScrollY : 0);
   $(view === 'home' ? 'homeTitle' : view === 'care' ? 'carePageTitle' : view === 'settings' ? 'settingsTitle' : 'reminderTitle').focus({ preventScroll: true });
 }
 function renderCare(topic = 'now') {
@@ -336,3 +338,15 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden) refr
 window.addEventListener('pageshow', refreshDayIfNeeded);
 setInterval(refreshDayIfNeeded, 60000);
 if ('serviceWorker' in navigator && location.protocol !== 'file:') navigator.serviceWorker.register('./sw.js').catch(() => {});
+$('reloadUpdate').addEventListener('click', () => {
+  const dateDirty = !$('settingsView').hidden && planFingerprint(readDateForm()) !== planFingerprint(settings);
+  const calendarDirty = !$('reminderView').hidden && planFingerprint(readCalendarForm()) !== planFingerprint(settings);
+  if ((dateDirty || calendarDirty) && !window.confirm('还有未保存的修改，刷新会丢失这些输入。确定刷新吗？')) return;
+  location.reload();
+});
+if ('serviceWorker' in navigator) {
+  const hadController = !!navigator.serviceWorker.controller;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (hadController) $('updateBanner').hidden = false;
+  });
+}

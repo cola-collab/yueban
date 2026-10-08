@@ -318,6 +318,9 @@ h1:focus, h1:focus-visible { outline: none; }
 .pill { border-radius: 12px; font-size: 14px; }
 .care-content p, .quick-list li { font-size: 15px; line-height: 1.65; }
 .source-note { font-size: 13px; }
+.update-banner { position: fixed; z-index: 9; left: 50%; bottom: calc(18px + env(safe-area-inset-bottom)); transform: translateX(-50%); display: flex; align-items: center; justify-content: space-between; gap: 12px; width: min(calc(100% - 24px), 500px); padding: 12px 15px; border: 1px solid var(--line); border-radius: 13px; background: var(--surface); color: var(--ink); box-shadow: 0 10px 30px rgba(36, 30, 37, .15); font-size: 14px; }
+.update-banner[hidden] { display: none; }
+.update-banner button { flex: none; min-height: 44px; padding: 7px 10px; border: 0; border-radius: 9px; background: var(--plum); color: white; font-weight: 690; }
 .back-button { margin-bottom: 12px; font-size: 14px; }
 .icon-button { min-width: 44px; min-height: 44px; }
 @media (max-width: 365px) { .shell { padding-left: 16px; padding-right: 16px; } .reminder-card { align-items: flex-start; } }
